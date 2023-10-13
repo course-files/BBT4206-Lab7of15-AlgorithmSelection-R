@@ -10,7 +10,7 @@ These are course files (instructional materials) for the **BBT4206: Business Int
 | **Semester Duration**                                                 | 21<sup>st</sup> August 2023 to 28<sup>th</sup> November 2023                                                                                                                       |
 | **Lecturer**                                                          | Allan Omondi                                                                                                                                                                       |
 | **Contact**                                                           | aomondi_at_strathmore_dot_edu                                                                                                                                                      |
-| **Recommended Citation (download [BibTex](RecommendedCitation.bib))** | Omondi, A. (2023). BBT4206-R-Lab6of15-EvaluationMetrics [R]. https://github.com/course-files/BBT4206-R-Lab6of15-EvaluationMetrics |
+| **Recommended Citation (download [BibTex](RecommendedCitation.bib))** | Omondi, A. (2023). BBT4206-R-Lab7of15-ModelSelection [R]. https://github.com/course-files/BBT4206-R-Lab6of15-EvaluationMetrics |
 
 It is based on the following 9 steps of **Knowledge Discovery in Databases (KDD)**:
 
@@ -58,9 +58,9 @@ Evaluate several standard algorithms on the data and shortlist the top performin
 
 -   *Lab5-ResamplingMethods.R*
 
--   [*Lab6-EvaluationMetrics.R*](Lab6-EvaluationMetrics.R)
+-   *Lab6-EvaluationMetrics.R*
 
--   *Lab7-ModelSelection.R*
+-   [*Lab7-ModelSelection.R*](Lab7-ModelSelection.R)
 
 -   *Lab8-ModelPerformanceComparison.R*
 
