@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Lab 5: Evaluation Metrics ----
+# Lab 5: Model Selection ----
 #
 # Course Code: BBT4206
 # Course Name: Business Intelligence II
@@ -128,19 +128,11 @@ if (require("languageserver")) {
 # the distribution can be that Red are 70 instances and Blue are 30 instances.
 
 # STEP 1. Install and Load the Required Packages ----
-## ggplot2 ----
-if (require("ggplot2")) {
-  require("ggplot2")
+## stats ----
+if (require("stats")) {
+  require("stats")
 } else {
-  install.packages("ggplot2", dependencies = TRUE,
-                   repos = "https://cloud.r-project.org")
-}
-
-## caret ----
-if (require("caret")) {
-  require("caret")
-} else {
-  install.packages("caret", dependencies = TRUE,
+  install.packages("stats", dependencies = TRUE,
                    repos = "https://cloud.r-project.org")
 }
 
@@ -152,329 +144,498 @@ if (require("mlbench")) {
                    repos = "https://cloud.r-project.org")
 }
 
-## pROC ----
-if (require("pROC")) {
-  require("pROC")
+## caret ----
+if (require("caret")) {
+  require("caret")
 } else {
-  install.packages("pROC", dependencies = TRUE,
+  install.packages("caret", dependencies = TRUE,
                    repos = "https://cloud.r-project.org")
 }
 
-## dplyr ----
-if (require("dplyr")) {
-  require("dplyr")
-} else {
-  install.packages("dplyr", dependencies = TRUE,
-                   repos = "https://cloud.r-project.org")
-}
+# Introduction ----
+# There are hundreds of algorithms to choose from.
+# A list of the classification and regression algorithms offered by
+# the caret package can be found here:
+# http://topepo.github.io/caret/available-models.html
 
-# 1. Accuracy and Cohen's Kappa ----
-## 1.a. Load the dataset ----
-data(PimaIndiansDiabetes)
+# The goal of predictive modelling is to use the most appropriate algorithm to
+# design an accurate model that represents the dataset. Selecting the most
+# appropriate algorithm is a process that involves trial-and-error.
 
-## 1.b. Determine the Baseline Accuracy ----
-# Identify the number of instances that belong to each class (distribution or
-# class breakdown).
+# If the most appropriate algorithm was known beforehand, then it would not be
+# necessary to use Machine Learning. The trial-and-error approach to selecting
+# the most appropriate algorithm involves evaluating a diverse set of
+# algorithms on the dataset, and identifying the algorithms that create
+# accurate models and the ones that do not.
 
-# The result should show that 65% tested negative and 34% tested positive
-# for diabetes.
+# Once you have a shortlist of the top algorithms, you can then improve their
+# results further by either tuning the algorithm parameters or by combining the
+# predictions of multiple models using ensemble methods.
 
-# This means that an algorithm can achieve a 65% accuracy by
-# predicting that all instances belong to the class "negative".
+# A. Linear Algorithms ----
+## 1.a. Linear Regression using Ordinary Least Squares without caret ----
+# The lm() function is in the stats package and creates a linear regression
+# model using ordinary least squares (OLS).
 
-# This in turn implies that the baseline accuracy is 65%.
+### Load and split the dataset ----
+data(BostonHousing)
 
-pima_indians_diabetes_freq <- PimaIndiansDiabetes$diabetes
-cbind(frequency =
-        table(pima_indians_diabetes_freq),
-      percentage = prop.table(table(pima_indians_diabetes_freq)) * 100)
-
-## 1.c. Split the dataset ----
-# Define a 75:25 train:test data split of the dataset.
-# That is, 75% of the original data will be used to train the model and
-# 25% of the original data will be used to test the model.
-train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
-                                   p = 0.75,
+# Define an 80:20 train:test data split of the dataset.
+train_index <- createDataPartition(BostonHousing$medv,
+                                   p = 0.8,
                                    list = FALSE)
-pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
-pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+boston_housing_train <- BostonHousing[train_index, ]
+boston_housing_test <- BostonHousing[-train_index, ]
 
-## 1.d. Train the Model ----
-# We apply the 5-fold cross validation resampling method
-train_control <- trainControl(method = "cv", number = 5)
+### Train the model ----
+boston_housing_model_lm <- lm(medv ~ ., boston_housing_train)
 
-# We then train a Generalized Linear Model to predict the value of Diabetes
-# (whether the patient will test positive/negative for diabetes).
+### Display the model's details ----
+print(boston_housing_model_lm)
 
-# `set.seed()` is a function that is used to specify a starting point for the
-# random number generator to a specific value. This ensures that every time you
-# run the same code, you will get the same "random" numbers.
-set.seed(7)
-diabetes_model_glm <-
-  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "glm",
-        metric = "Accuracy", trControl = train_control)
+### Make predictions ----
+predictions <- predict(boston_housing_model_lm, boston_housing_test[, 1:13])
 
-## 1.e. Display the Model's Performance ----
-### Option 1: Use the metric calculated by caret when training the model ----
-# The results show an accuracy of approximately 77% (slightly above the baseline
-# accuracy) and a Kappa of approximately 49%.
-print(diabetes_model_glm)
-
-### Option 2: Compute the metric yourself using the test dataset ----
-# A confusion matrix is useful for multi-class classification problems.
-# Please watch the following video first: https://youtu.be/Kdsp6soqA7o
-
-# The Confusion Matrix is a type of matrix which is used to visualize the
-# predicted values against the actual Values. The row headers in the
-# confusion matrix represent predicted values and column headers are used to
-# represent actual values.
-
-predictions <- predict(diabetes_model_glm, pima_indians_diabetes_test[, 1:8])
-confusion_matrix <-
-  caret::confusionMatrix(predictions,
-                         pima_indians_diabetes_test[, 1:9]$diabetes)
-print(confusion_matrix)
-
-### Option 3: Display a graphical confusion matrix ----
-
-# Visualizing Confusion Matrix
-fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
-             main = "Confusion Matrix")
-
-# 2. RMSE, R Squared, and MAE ----
-
-# RMSE stands for "Root Mean Squared Error" and it is defined as the average
-# deviation of the predictions from the observations.
-
-# R Squared (R^2) is also known as the "coefficient of determination".
-# It provides a goodness of fit measure for the predictions to the
-# observations.
-
-# NOTE: R Squared (R^2) is a value between 0 and 1 such that
-# 0 refers to "no fit" and 1 refers to a "perfect fit".
-
-## 2.a. Load the dataset ----
-data(longley)
-summary(longley)
-longley_no_na <- na.omit(longley)
-
-## 2.b. Split the dataset ----
-# Define a train:test data split of the dataset. Such that 10/16 are in the
-# train set and the remaining 6/16 observations are in the test set.
-
-# In this case, we split randomly without using a predictor variable in the
-# caret::createDataPartition function.
-
-# For reproducibility; by ensuring that you end up with the same
-# "random" samples
-set.seed(7)
-
-# We apply simple random sampling using the base::sample function to get
-# 10 samples
-train_index <- sample(1:dim(longley)[1], 10) # nolint: seq_linter.
-longley_train <- longley[train_index, ]
-longley_test <- longley[-train_index, ]
-
-## 2.c. Train the Model ----
-# We apply bootstrapping with 1,000 repetitions
-train_control <- trainControl(method = "boot", number = 1000)
-
-# We then train a linear regression model to predict the value of Employed
-# (the number of people that will be employed given the independent variables).
-longley_model_lm <-
-  train(Employed ~ ., data = longley_train, test = longley_test[, 1:6],
-        na.action = na.omit, method = "lm", metric = "RMSE",
-        trControl = train_control)
-
-## 2.d. Display the Model's Performance ----
-### Option 1: Use the metric calculated by caret when training the model ----
-# The results show an RMSE value of approximately 4.3898 and
-# an R Squared value of approximately 0.8594
-# (the closer the R squared value is to 1, the better the model).
-print(longley_model_lm)
-
-### Option 2: Compute the metric yourself using the test dataset ----
-predictions <- predict(longley_model_lm, longley_test[, 1:6])
-
-# These are the 6 values for employment that the model has predicted:
-print(predictions)
-
+### Display the model's evaluation metrics ----
 #### RMSE ----
-rmse <- sqrt(mean((longley_test$Employed - predictions)^2))
+rmse <- sqrt(mean((boston_housing_test$medv - predictions)^2))
 print(paste("RMSE =", rmse))
 
 #### SSR ----
 # SSR is the sum of squared residuals (the sum of squared differences
 # between observed and predicted values)
-ssr <- sum((longley_test$Employed - predictions)^2)
+ssr <- sum((boston_housing_test$medv - predictions)^2)
 print(paste("SSR =", ssr))
 
 #### SST ----
 # SST is the total sum of squares (the sum of squared differences
 # between observed values and their mean)
-sst <- sum((longley_test$Employed - mean(longley_test$Employed))^2)
+sst <- sum((boston_housing_test$medv - mean(boston_housing_test$medv))^2)
 print(paste("SST =", sst))
 
 #### R Squared ----
-# We then use SSR and SST to compute the value of R squared
+# We then use SSR and SST to compute the value of R squared.
+# The closer the R squared value is to 1, the better the model.
 r_squared <- 1 - (ssr / sst)
 print(paste("R Squared =", r_squared))
 
 #### MAE ----
-# MAE measures the average absolute differences between the predicted and
-# actual values in a dataset. MAE is useful for assessing how close the model's
-# predictions are to the actual values.
-
 # MAE is expressed in the same units as the target variable, making it easy to
 # interpret. For example, if you are predicting the amount paid in rent,
 # and the MAE is KES. 10,000, it means, on average, your model's predictions
 # are off by about KES. 10,000.
-absolute_errors <- abs(predictions - longley_test$Employed)
+absolute_errors <- abs(predictions - boston_housing_test$medv)
 mae <- mean(absolute_errors)
 print(paste("MAE =", mae))
 
-# 3. Area Under ROC Curve ----
-# Area Under Receiver Operating Characteristic Curve (AUROC) or simply
-# "Area Under Curve (AUC)" or "ROC" represents a model's ability to
-# discriminate between two classes.
+## 1.b. Linear Regression using Ordinary Least Squares with caret ----
+### Load and split the dataset ----
+data(BostonHousing)
 
-# ROC is a value between 0.5 and 1 such that 0.5 refers to a model with a
-# very poor prediction (essentially a random prediction; 50-50 accuracy)
-# and an AUC of 1 refers to a model that predicts perfectly.
-
-# ROC can be broken down into:
-## Sensitivity ----
-#         The number of instances from the first class (positive class)
-#         that were actually predicted correctly. This is the true positive
-#         rate, also known as the recall.
-## Specificity ----
-#         The number of instances from the second class (negative class)
-#         that were actually predicted correctly. This is the true negative
-#         rate.
-
-## 3.a. Load the dataset ----
-data(PimaIndiansDiabetes)
-## 3.b. Determine the Baseline Accuracy ----
-# The baseline accuracy is 65%.
-
-pima_indians_diabetes_freq <- PimaIndiansDiabetes$diabetes
-cbind(frequency =
-        table(pima_indians_diabetes_freq),
-      percentage = prop.table(table(pima_indians_diabetes_freq)) * 100)
-
-## 3.c. Split the dataset ----
 # Define an 80:20 train:test data split of the dataset.
-train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+train_index <- createDataPartition(BostonHousing$medv,
                                    p = 0.8,
                                    list = FALSE)
-pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
-pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+boston_housing_train <- BostonHousing[train_index, ]
+boston_housing_test <- BostonHousing[-train_index, ]
 
-## 3.d. Train the Model ----
-# We apply the 10-fold cross validation resampling method
-train_control <- trainControl(method = "cv", number = 10,
-                              classProbs = TRUE,
-                              summaryFunction = twoClassSummary)
-
-# We then train a k Nearest Neighbours Model to predict the value of Diabetes
-# (whether the patient will test positive/negative for diabetes).
-
+### Train the model ----
 set.seed(7)
-diabetes_model_knn <-
-  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "knn",
-        metric = "ROC", trControl = train_control)
+train_control <- trainControl(method = "cv", number = 5)
+boston_housing_caret_model_lm <- train(medv ~ ., data = boston_housing_train,
+                                       method = "lm", metric = "RMSE",
+                                       preProcess = c("center", "scale"),
+                                       trControl = train_control)
 
-## 3.e. Display the Model's Performance ----
-### Option 1: Use the metric calculated by caret when training the model ----
-# The results show a ROC value of approximately 0.76 (the closer to 1,
-# the higher the prediction accuracy) when the parameter k = 9
-# (9 nearest neighbours).
+### Display the model's details ----
+print(boston_housing_caret_model_lm)
 
-print(diabetes_model_knn)
+### Make predictions ----
+predictions <- predict(boston_housing_caret_model_lm,
+                       boston_housing_test[, 1:13])
 
-### Option 2: Compute the metric yourself using the test dataset ----
-#### Sensitivity and Specificity ----
-predictions <- predict(diabetes_model_knn, pima_indians_diabetes_test[, 1:8])
-# These are the values for diabetes that the
-# model has predicted:
-print(predictions)
-confusion_matrix <-
-  caret::confusionMatrix(predictions,
-                         pima_indians_diabetes_test[, 1:9]$diabetes)
+### Display the model's evaluation metrics ----
+#### RMSE ----
+rmse <- sqrt(mean((boston_housing_test$medv - predictions)^2))
+print(paste("RMSE =", rmse))
 
-# We can see the sensitivity (≈ 0.86) and the specificity (≈ 0.60) below:
-print(confusion_matrix)
+#### SSR ----
+# SSR is the sum of squared residuals (the sum of squared differences
+# between observed and predicted values)
+ssr <- sum((boston_housing_test$medv - predictions)^2)
+print(paste("SSR =", ssr))
 
-#### AUC ----
-# The type = "prob" argument specifies that you want to obtain class
-# probabilities as the output of the prediction instead of class labels.
-predictions <- predict(diabetes_model_knn, pima_indians_diabetes_test[, 1:8],
-                       type = "prob")
+#### SST ----
+# SST is the total sum of squares (the sum of squared differences
+# between observed values and their mean)
+sst <- sum((boston_housing_test$medv - mean(boston_housing_test$medv))^2)
+print(paste("SST =", sst))
 
-# These are the class probability values for diabetes that the
-# model has predicted:
-print(predictions)
+#### R Squared ----
+# We then use SSR and SST to compute the value of R squared.
+# The closer the R squared value is to 1, the better the model.
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", r_squared))
 
-# "Controls" and "Cases": In a binary classification problem, you typically
-# have two classes, often referred to as "controls" and "cases."
-# These classes represent the different outcomes you are trying to predict.
-# For example, in a medical context, "controls" might represent patients without
-# a disease, and "cases" might represent patients with the disease.
+#### MAE ----
+# MAE is expressed in the same units as the target variable, making it easy to
+# interpret. For example, if you are predicting the amount paid in rent,
+# and the MAE is KES. 10,000, it means, on average, your model's predictions
+# are off by about KES. 10,000.
+absolute_errors <- abs(predictions - boston_housing_test$medv)
+mae <- mean(absolute_errors)
+print(paste("MAE =", mae))
 
-# Setting the Direction: The phrase "Setting direction: controls < cases"
-# specifies how you define which class is considered the positive class (cases)
-# and which is considered the negative class (controls) when calculating
-# sensitivity and specificity.
-roc_curve <- roc(pima_indians_diabetes_test$diabetes, predictions$neg)
+## 2. Logistic Regression ----
+# The glm() function is in the stats package and creates a generalized linear model for regression or classification. It can be configured to perform a logistic regression suitable for binary classification problems.
+# load the package
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# fit model
+fit <- glm(diabetes~., data=PimaIndiansDiabetes, family=binomial(link='logit'))
+# summarize the fit
+print(fit)
+# make predictions
+probabilities <- predict(fit, PimaIndiansDiabetes[,1:8], type='response')
+predictions <- ifelse(probabilities > 0.5,'pos','neg')
+# summarize accuracy
+table(predictions, PimaIndiansDiabetes$diabetes)
 
-# Plot the ROC curve
-plot(roc_curve, main = "ROC Curve for KNN Model", print.auc = TRUE,
-     print.auc.x = 0.6, print.auc.y = 0.6, col = "blue", lwd = 2.5)
-
-# 4. Logarithmic Loss (LogLoss) ----
-# Logarithmic Loss (LogLoss) is an evaluation metric commonly used for
-# assessing the performance of classification models, especially when the model
-# provides probability estimates for each class.
-
-# LogLoss measures how well the predicted probabilities align with the true
-# binary outcomes.
-
-# In *binary classification*, the LogLoss formula for a single observation is:
-# LogLoss = −(y log(p) + (1 − y)log(1 − p))
-
-# Where:
-# [*] y is the true binary label (0 or 1).
-# [*] p is the predicted probability of the positive class.
-
-# The LogLoss formula computes the logarithm of the predicted probability for
-# the true class (if y = 1) or the logarithm of the predicted probability for
-# the negative class (if y = 0), and then sums the results.
-
-# A lower LogLoss indicates better model performance, where perfect predictions
-# result in a LogLoss of 0.
-
-########################### ----
-## 4.a. Load the dataset ----
-data(iris)
-
-## 4.b. Train the Model ----
-# We apply the 5-fold repeated cross validation resampling method
-# with 3 repeats
-train_control <- trainControl(method = "repeatedcv", number = 5, repeats = 3,
-                              classProbs = TRUE,
-                              summaryFunction = mnLogLoss)
+# The glm algorithm can be used in caret as follows:
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# train
 set.seed(7)
-# This creates a CART model. One of the parameters used by a CART model is "cp".
-# "cp" refers to the "complexity parameter". It is used to impose a penalty to
-# the tree for having too many splits. The default value is 0.01.
-iris_model_cart <- train(Species ~ ., data = iris, method = "rpart",
-                         metric = "logLoss", trControl = train_control)
+trainControl <- trainControl(method="cv", number=5)
+# Alternatively, we can use "regLogistic" instead of "glm"
+fit.glm <- train(diabetes~., data=PimaIndiansDiabetes, method="regLogistic", metric="Accuracy",
+                 preProcess=c("center", "scale"), trControl=trainControl)
+# summarize fit
+print(fit.glm)
 
-## 4.c. Display the Model's Performance ----
-### Option 1: Use the metric calculated by caret when training the model ----
-# The results show that a cp value of ≈ 0 resulted in the lowest
-# LogLoss value. The lowest logLoss value is ≈ 0.46.
-print(iris_model_cart)
+## 3.  Linear Discriminant Analysis ----
+# The lda() function is in the MASS package and creates a linear model of a classification problem.
+
+# load the packages
+library(MASS)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# fit model
+fit <- lda(diabetes~., data=PimaIndiansDiabetes)
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, PimaIndiansDiabetes[,1:8])$class
+# summarize accuracy
+table(predictions, PimaIndiansDiabetes$diabetes)
+
+# The lda algorithm can be used in caret as follows:
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.lda <- train(diabetes~., data=PimaIndiansDiabetes, method="lda", metric="Accuracy",
+                 preProcess=c("center", "scale"), trControl=trainControl)
+# summarize fit
+print(fit.lda)
+
+## 4. Regularized Regression ----
+# The glmnet() function is in the glmnet package and can be used for classification or regression.
+# It can also be configured to perform three important types of regularization: lasso, ridge and elastic net by configuring the alpha parameter to 1, 0 or in [0,1] respectively.
+### 4.a. Classification Problem without CARET ----
+# load the package
+library(glmnet)
+library(mlbench)
+# load data
+data(PimaIndiansDiabetes)
+x <- as.matrix(PimaIndiansDiabetes[,1:8])
+y <- as.matrix(PimaIndiansDiabetes[,9])
+# fit model
+fit <- glmnet(x, y, family="binomial", alpha=0.5, lambda=0.001)
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, x, type="class")
+# summarize accuracy
+table(predictions, PimaIndiansDiabetes$diabetes)
+
+### 4.b. Regression Problem without CARET ----
+# caret version
+# load the packages
+library(glmnet)
+library(mlbench)
+# load data
+data(BostonHousing)
+BostonHousing$chas <- as.numeric(as.character(BostonHousing$chas))
+x <- as.matrix(BostonHousing[,1:13])
+y <- as.matrix(BostonHousing[,14])
+# fit model
+fit <- glmnet(x, y, family="gaussian", alpha=0.5, lambda=0.001)
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, x, type="link")
+# summarize accuracy
+mse <- mean((y - predictions)^2)
+print(mse)
+
+### 4.c. Classification Problem with CARET ----
+# load packages
+library(caret)
+library(mlbench)
+library(glmnet)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.glmnet <- train(diabetes~., data=PimaIndiansDiabetes, method="glmnet",
+                    metric="Accuracy", preProcess=c("center", "scale"), trControl=trainControl)
+# summarize fit
+print(fit.glmnet)
+
+### 4.d. Regression Problem with CARET ----
+# load packages
+library(caret)
+library(mlbench)
+library(glmnet)
+# Load the dataset
+data(BostonHousing)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.glmnet <- train(medv~., data=BostonHousing, method="glmnet", metric="RMSE",
+                    preProcess=c("center", "scale"), trControl=trainControl)
+# summarize fit
+print(fit.glmnet)
+
+# B. Non-Linear Algorithms ----
+## 1.  k-Nearest Neighbours ----
+# The knn3() function is in the caret package and does not create a model. Instead it makes predictions from the training dataset directly. It can be used for classification or regression.
+
+### 1.a. Classification Problem without CARET ----
+# load the packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# fit model
+fit <- knn3(diabetes~., data=PimaIndiansDiabetes, k=3)
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, PimaIndiansDiabetes[,1:8], type="class")
+# summarize accuracy
+table(predictions, PimaIndiansDiabetes$diabetes)
+
+### 1.b. Regression Problem without CARET ----
+# load the packages
+library(caret)
+library(mlbench)
+# load data
+data(BostonHousing)
+BostonHousing$chas <- as.numeric(as.character(BostonHousing$chas))
+x <- as.matrix(BostonHousing[,1:13])
+y <- as.matrix(BostonHousing[,14])
+# fit model
+fit <- knnreg(x, y, k=3)
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, x)
+# summarize accuracy
+mse <- mean((BostonHousing$medv - predictions)^2)
+print(mse)
+
+### 1.c. Classification Problem with CARET ----
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.knn <- train(diabetes~., data=PimaIndiansDiabetes, method="knn", metric="Accuracy",
+                 preProcess=c("center", "scale"), trControl=trainControl)
+# summarize fit
+print(fit.knn)
+
+### 1.d. Regression Problem with CARET ----
+# load packages
+library(caret)
+# Load the dataset
+data(BostonHousing)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.knn <- train(medv~., data=BostonHousing, method="knn", metric="RMSE",
+                 preProcess=c("center", "scale"), trControl=trainControl)
+# summarize fit
+print(fit.knn)
+
+## 2.  Naïve Bayes ----
+### 2.a. Classification Problem without CARET ----
+# load the packages
+library(e1071)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# fit model
+fit <- naiveBayes(diabetes~., data=PimaIndiansDiabetes)
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, PimaIndiansDiabetes[,1:8])
+# summarize accuracy
+table(predictions, PimaIndiansDiabetes$diabetes)
+
+### 2.b. Classification Problem with CARET ----
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.nb <- train(diabetes~., data=PimaIndiansDiabetes, method="nb", metric="Accuracy",
+                trControl=trainControl)
+# summarize fit
+print(fit.nb)
+
+## 3.  Support Vector Machine ----
+# The ksvm() function is in the kernlab package and can be used for classification or regression.
+### 3.a. Classification Problem without CARET ----
+# The ksvm() function is in the kernlab package and can be used for classification or regression.
+# load the packages
+library(kernlab)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# fit model
+fit <- ksvm(diabetes~., data=PimaIndiansDiabetes, kernel="rbfdot")
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, PimaIndiansDiabetes[,1:8], type="response")
+# summarize accuracy
+table(predictions, PimaIndiansDiabetes$diabetes)
+
+### 3.b. Regression Problem without CARET ----
+# load the packages
+library(kernlab)
+library(mlbench)
+# load data
+data(BostonHousing)
+# fit model
+fit <- ksvm(medv~., BostonHousing, kernel="rbfdot")
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, BostonHousing)
+# summarize accuracy
+mse <- mean((BostonHousing$medv - predictions)^2)
+print(mse)
+
+### 3.c. Classification Problem with CARET ----
+# The SVM with Radial Basis kernel implementation can be used with caret for classification as follows:
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.svmRadial <- train(diabetes~., data=PimaIndiansDiabetes, method="svmRadial",
+                       metric="Accuracy", trControl=trainControl)
+# summarize fit
+print(fit.svmRadial)
+
+### 3.d. Regression Problem with CARET ----
+# The SVM with Radial Basis kernel implementation can be used with caret for regression as follows:
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(BostonHousing)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.svmRadial <- train(medv~., data=BostonHousing, method="svmRadial", metric="RMSE",
+                       trControl=trainControl)
+# summarize fit
+print(fit.svmRadial)
+
+## 4.  Classification and Regression Trees ----
+### 4.a. Classification Problem without CARET ----
+# load the packages
+library(rpart)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# fit model
+fit <- rpart(diabetes~., data=PimaIndiansDiabetes)
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, PimaIndiansDiabetes[,1:8], type="class")
+# summarize accuracy
+table(predictions, PimaIndiansDiabetes$diabetes)
+
+### 4.b. Regression Problem without CARET ----
+# load the packages
+library(rpart)
+library(mlbench)
+# load data
+data(BostonHousing)
+# fit model
+fit <- rpart(medv~., data=BostonHousing, control=rpart.control(minsplit=5))
+# summarize the fit
+print(fit)
+# make predictions
+predictions <- predict(fit, BostonHousing[,1:13])
+# summarize accuracy
+mse <- mean((BostonHousing$medv - predictions)^2)
+print(mse)
+
+### 4.c. Classification Problem with CARET ----
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(PimaIndiansDiabetes)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=5)
+fit.rpart <- train(diabetes~., data=PimaIndiansDiabetes, method="rpart", metric="Accuracy",
+                   trControl=trainControl)
+# summarize fit
+print(fit.rpart)
+
+### 4.d. Regression Problem with CARET ----
+# load packages
+library(caret)
+library(mlbench)
+# Load the dataset
+data(BostonHousing)
+# train
+set.seed(7)
+trainControl <- trainControl(method="cv", number=2)
+fit.rpart <- train(medv~., data=BostonHousing, method="rpart", metric="RMSE",
+                   trControl=trainControl)
+# summarize fit
+print(fit.rpart)
 
 # [OPTIONAL] **Deinitialization: Create a snapshot of the R environment ----
 # Lastly, as a follow-up to the initialization step, record the packages
