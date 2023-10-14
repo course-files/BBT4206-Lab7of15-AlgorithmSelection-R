@@ -160,6 +160,14 @@ if (require("MASS")) {
                    repos = "https://cloud.r-project.org")
 }
 
+## glmnet ----
+if (require("glmnet")) {
+  require("glmnet")
+} else {
+  install.packages("glmnet", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
 # Introduction ----
 # There are hundreds of algorithms to choose from.
 # A list of the classification and regression algorithms offered by
@@ -424,6 +432,7 @@ diabetes_caret_model_lda <- train(diabetes ~ .,
                                   method = "lda", metric = "Accuracy",
                                   preProcess = c("center", "scale"),
                                   trControl = train_control)
+
 ### Display the model's details ----
 print(diabetes_caret_model_lda)
 
@@ -440,75 +449,170 @@ print(confusion_matrix)
 fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
              main = "Confusion Matrix")
 
-## 4. Regularized Regression ----
-# The glmnet() function is in the glmnet package and can be used for classification or regression.
-# It can also be configured to perform three important types of regularization: lasso, ridge and elastic net by configuring the alpha parameter to 1, 0 or in [0,1] respectively.
-### 4.a. Classification Problem without CARET ----
-# load the package
-library(glmnet)
-library(mlbench)
-# load data
+## 4. Regularized Linear Regression ----
+# The glmnet() function is in the glmnet package and can be used for
+# both classification and regression problems.
+# It can also be configured to perform three important types of regularization:
+##    1. lasso,
+##    2. ridge and
+##    3. elastic net
+# by configuring the alpha parameter to 1, 0 or in [0,1] respectively.
+
+## 4.a. Regularized Linear Regression Classification Problem without CARET ----
+### Load the dataset ----
 data(PimaIndiansDiabetes)
-x <- as.matrix(PimaIndiansDiabetes[,1:8])
-y <- as.matrix(PimaIndiansDiabetes[,9])
-# fit model
-fit <- glmnet(x, y, family="binomial", alpha=0.5, lambda=0.001)
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, x, type="class")
-# summarize accuracy
+x <- as.matrix(PimaIndiansDiabetes[, 1:8])
+y <- as.matrix(PimaIndiansDiabetes[, 9])
+
+### Train the model ----
+diabetes_model_glm <- glmnet(x, y, family = "binomial",
+                             alpha = 0.5, lambda = 0.001)
+
+### Display the model's details ----
+print(diabetes_model_glm)
+
+### Make predictions ----
+predictions <- predict(diabetes_model_glm, x, type = "class")
+
+### Display the model's evaluation metrics ----
 table(predictions, PimaIndiansDiabetes$diabetes)
 
-### 4.b. Regression Problem without CARET ----
-# caret version
-# load the packages
-library(glmnet)
-library(mlbench)
-# load data
+## 4.b. Regularized Linear Regression Regression Problem without CARET ----
+### Load the dataset ----
 data(BostonHousing)
-BostonHousing$chas <- as.numeric(as.character(BostonHousing$chas))
-x <- as.matrix(BostonHousing[,1:13])
-y <- as.matrix(BostonHousing[,14])
-# fit model
-fit <- glmnet(x, y, family="gaussian", alpha=0.5, lambda=0.001)
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, x, type="link")
-# summarize accuracy
+BostonHousing$chas <- # nolint: object_name_linter.
+  as.numeric(as.character(BostonHousing$chas))
+x <- as.matrix(BostonHousing[, 1:13])
+y <- as.matrix(BostonHousing[, 14])
+
+### Train the model ----
+boston_housing_model_glm <- glmnet(x, y, family = "gaussian",
+                                   alpha = 0.5, lambda = 0.001)
+
+### Display the model's details ----
+print(boston_housing_model_glm)
+
+### Make predictions ----
+predictions <- predict(boston_housing_model_glm, x, type = "link")
+
+### Display the model's evaluation metrics ----
 mse <- mean((y - predictions)^2)
 print(mse)
+#### RMSE ----
+rmse <- sqrt(mean((y - predictions)^2))
+print(paste("RMSE =", sprintf(rmse, fmt = "%#.4f")))
 
-### 4.c. Classification Problem with CARET ----
-# load packages
-library(caret)
-library(mlbench)
-library(glmnet)
-# Load the dataset
+#### SSR ----
+ssr <- sum((y - predictions)^2)
+print(paste("SSR =", sprintf(ssr, fmt = "%#.4f")))
+
+#### SST ----
+sst <- sum((y - mean(y))^2)
+print(paste("SST =", sprintf(sst, fmt = "%#.4f")))
+
+#### R Squared ----
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", sprintf(r_squared, fmt = "%#.4f")))
+
+#### MAE ----
+absolute_errors <- abs(predictions - y)
+mae <- mean(absolute_errors)
+print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
+
+## 4.c. Regularized Linear Regression Classification Problem with CARET ----
+### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# train
-set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.glmnet <- train(diabetes~., data=PimaIndiansDiabetes, method="glmnet",
-                    metric="Accuracy", preProcess=c("center", "scale"), trControl=trainControl)
-# summarize fit
-print(fit.glmnet)
 
-### 4.d. Regression Problem with CARET ----
-# load packages
-library(caret)
-library(mlbench)
-library(glmnet)
-# Load the dataset
-data(BostonHousing)
-# train
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+### Train the model ----
+# We apply the 5-fold cross validation resampling method
 set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.glmnet <- train(medv~., data=BostonHousing, method="glmnet", metric="RMSE",
-                    preProcess=c("center", "scale"), trControl=trainControl)
-# summarize fit
-print(fit.glmnet)
+train_control <- trainControl(method = "cv", number = 5)
+diabetes_caret_model_glmnet <-
+  train(diabetes ~ ., data = pima_indians_diabetes_train,
+        method = "glmnet", metric = "Accuracy",
+        preProcess = c("center", "scale"), trControl = train_control)
+
+### Display the model's details ----
+print(diabetes_caret_model_glmnet)
+
+### Make predictions ----
+predictions <- predict(diabetes_caret_model_glmnet,
+                       pima_indians_diabetes_test[, 1:8])
+
+### Display the model's evaluation metrics ----
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test[, 1:9]$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
+
+## 4.d. Regularized Linear Regression Regression Problem with CARET ----
+### Load and split the dataset ----
+data(BostonHousing)
+
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(BostonHousing$medv,
+                                   p = 0.7,
+                                   list = FALSE)
+boston_housing_train <- BostonHousing[train_index, ]
+boston_housing_test <- BostonHousing[-train_index, ]
+
+### Train the model ----
+set.seed(7)
+train_control <- trainControl(method = "cv", number = 5)
+housing_caret_model_glmnet <-
+  train(medv ~ .,
+        data = boston_housing_train, method = "glmnet",
+        metric = "RMSE", preProcess = c("center", "scale"),
+        trControl = train_control)
+
+### Display the model's details ----
+print(housing_caret_model_glmnet)
+
+### Make predictions ----
+predictions <- predict(housing_caret_model_glmnet, boston_housing_test[, 1:13])
+
+### Display the model's evaluation metrics ----
+#### RMSE ----
+rmse <- sqrt(mean((boston_housing_test$medv - predictions)^2))
+print(paste("RMSE =", sprintf(rmse, fmt = "%#.4f")))
+
+#### SSR ----
+# SSR is the sum of squared residuals (the sum of squared differences
+# between observed and predicted values)
+ssr <- sum((boston_housing_test$medv - predictions)^2)
+print(paste("SSR =", sprintf(ssr, fmt = "%#.4f")))
+
+#### SST ----
+# SST is the total sum of squares (the sum of squared differences
+# between observed values and their mean)
+sst <- sum((boston_housing_test$medv - mean(boston_housing_test$medv))^2)
+print(paste("SST =", sprintf(sst, fmt = "%#.4f")))
+
+#### R Squared ----
+# We then use SSR and SST to compute the value of R squared.
+# The closer the R squared value is to 1, the better the model.
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", sprintf(r_squared, fmt = "%#.4f")))
+
+#### MAE ----
+# MAE is expressed in the same units as the target variable, making it easy to
+# interpret. For example, if you are predicting the amount paid in rent,
+# and the MAE is KES. 10,000, it means, on average, your model's predictions
+# are off by about KES. 10,000.
+absolute_errors <- abs(predictions - boston_housing_test$medv)
+mae <- mean(absolute_errors)
+print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
+
 
 # B. Non-Linear Algorithms ----
 ## 1.  k-Nearest Neighbours ----
@@ -702,18 +806,25 @@ mse <- mean((BostonHousing$medv - predictions)^2)
 print(mse)
 
 ### 4.c. Classification Problem with CARET ----
-# load packages
-library(caret)
-library(mlbench)
-# Load the dataset
+### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# train
+
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+### Train the model ----
 set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.rpart <- train(diabetes~., data=PimaIndiansDiabetes, method="rpart", metric="Accuracy",
-                   trControl=trainControl)
+# We apply the 5-fold cross validation resampling method
+train_control <- trainControl(method = "cv", number = 5)
+diabetes_caret_model_rpart <- train(diabetes ~ ., data = PimaIndiansDiabetes,
+                                    method = "rpart", metric = "Accuracy",
+                                    trControl = train_control)
 # summarize fit
-print(fit.rpart)
+print(diabetes_caret_model_rpart)
 
 ### 4.d. Regression Problem with CARET ----
 # load packages
