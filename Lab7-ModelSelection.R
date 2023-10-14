@@ -168,6 +168,14 @@ if (require("glmnet")) {
                    repos = "https://cloud.r-project.org")
 }
 
+## e1071 ----
+if (require("e1071")) {
+  require("e1071")
+} else {
+  install.packages("e1071", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
 # Introduction ----
 # There are hundreds of algorithms to choose from.
 # A list of the classification and regression algorithms offered by
@@ -793,34 +801,73 @@ mae <- mean(absolute_errors)
 print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
 
 ## 2.  Naïve Bayes ----
-### 2.a. Classification Problem without CARET ----
-# load the packages
-library(e1071)
-library(mlbench)
-# Load the dataset
+### 2.a. Naïve Bayes Classifier for a Classification Problem without CARET ----
+# We use the naiveBayes function inside the e1071 package
+#### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# fit model
-fit <- naiveBayes(diabetes~., data=PimaIndiansDiabetes)
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, PimaIndiansDiabetes[,1:8])
-# summarize accuracy
-table(predictions, PimaIndiansDiabetes$diabetes)
 
-### 2.b. Classification Problem with CARET ----
-# load packages
-library(caret)
-library(mlbench)
-# Load the dataset
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+#### Train the model ----
+diabetes_model_nb <- naiveBayes(diabetes ~ .,
+                                data = pima_indians_diabetes_train)
+
+#### Display the model's details ----
+print(diabetes_model_nb)
+
+#### Make predictions ----
+predictions <- predict(diabetes_model_nb,
+                       pima_indians_diabetes_test[, 1:8])
+
+#### Display the model's evaluation metrics ----
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test[, 1:9]$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
+
+### 2.b. Naïve Bayes Classifier for a Classification Problem with CARET ----
+#### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# train
+
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+#### Train the model ----
+# We apply the 5-fold cross validation resampling method
 set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.nb <- train(diabetes~., data=PimaIndiansDiabetes, method="nb", metric="Accuracy",
-                trControl=trainControl)
-# summarize fit
-print(fit.nb)
+train_control <- trainControl(method = "cv", number = 5)
+diabetes_caret_model_nb <- train(diabetes ~ .,
+                                 data = pima_indians_diabetes_train,
+                                 method = "nb", metric = "Accuracy",
+                                 trControl = train_control)
+
+#### Display the model's details ----
+print(diabetes_caret_model_nb)
+
+#### Make predictions ----
+predictions <- predict(diabetes_caret_model_nb,
+                       pima_indians_diabetes_test[, 1:8])
+
+#### Display the model's evaluation metrics ----
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test[, 1:9]$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
 
 ## 3.  Support Vector Machine ----
 # The ksvm() function is in the kernlab package and can be used for classification or regression.
