@@ -176,6 +176,14 @@ if (require("e1071")) {
                    repos = "https://cloud.r-project.org")
 }
 
+## kernlab ----
+if (require("kernlab")) {
+  require("kernlab")
+} else {
+  install.packages("kernlab", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
 # Introduction ----
 # There are hundreds of algorithms to choose from.
 # A list of the classification and regression algorithms offered by
@@ -870,68 +878,187 @@ fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
              main = "Confusion Matrix")
 
 ## 3.  Support Vector Machine ----
-# The ksvm() function is in the kernlab package and can be used for classification or regression.
-### 3.a. Classification Problem without CARET ----
-# The ksvm() function is in the kernlab package and can be used for classification or regression.
-# load the packages
-library(kernlab)
-library(mlbench)
-# Load the dataset
+### 3.a. SVM Classifier for a classification problem without CARET ----
+#### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# fit model
-fit <- ksvm(diabetes~., data=PimaIndiansDiabetes, kernel="rbfdot")
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, PimaIndiansDiabetes[,1:8], type="response")
-# summarize accuracy
-table(predictions, PimaIndiansDiabetes$diabetes)
 
-### 3.b. Regression Problem without CARET ----
-# load the packages
-library(kernlab)
-library(mlbench)
-# load data
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+#### Train the model ----
+diabetes_model_svm <- ksvm(diabetes ~ ., data = pima_indians_diabetes_train,
+                           kernel = "rbfdot")
+
+#### Display the model's details ----
+print(diabetes_model_svm)
+
+#### Make predictions ----
+predictions <- predict(diabetes_model_svm, pima_indians_diabetes_test[, 1:8],
+                       type = "response")
+
+#### Display the model's evaluation metrics ----
+table(predictions, pima_indians_diabetes_test$diabetes)
+
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test[, 1:9]$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
+
+### 3.b. SVM Classifier for a regression problem without CARET ----
+#### Load and split the dataset ----
 data(BostonHousing)
-# fit model
-fit <- ksvm(medv~., BostonHousing, kernel="rbfdot")
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, BostonHousing)
-# summarize accuracy
-mse <- mean((BostonHousing$medv - predictions)^2)
-print(mse)
 
-### 3.c. Classification Problem with CARET ----
-# The SVM with Radial Basis kernel implementation can be used with caret for classification as follows:
-# load packages
-library(caret)
-library(mlbench)
-# Load the dataset
+# Define an 80:20 train:test data split of the dataset.
+train_index <- createDataPartition(BostonHousing$medv,
+                                   p = 0.8,
+                                   list = FALSE)
+boston_housing_train <- BostonHousing[train_index, ]
+boston_housing_test <- BostonHousing[-train_index, ]
+
+#### Train the model ----
+housing_model_svm <- ksvm(medv ~ ., boston_housing_train, kernel = "rbfdot")
+
+#### Display the model's details ----
+print(housing_model_svm)
+
+#### Make predictions ----
+predictions <- predict(housing_model_svm, boston_housing_test)
+
+#### Display the model's evaluation metrics ----
+##### RMSE ----
+rmse <- sqrt(mean((boston_housing_test$medv - predictions)^2))
+print(paste("RMSE =", sprintf(rmse, fmt = "%#.4f")))
+
+##### SSR ----
+# SSR is the sum of squared residuals (the sum of squared differences
+# between observed and predicted values)
+ssr <- sum((boston_housing_test$medv - predictions)^2)
+print(paste("SSR =", sprintf(ssr, fmt = "%#.4f")))
+
+##### SST ----
+# SST is the total sum of squares (the sum of squared differences
+# between observed values and their mean)
+sst <- sum((boston_housing_test$medv - mean(boston_housing_test$medv))^2)
+print(paste("SST =", sprintf(sst, fmt = "%#.4f")))
+
+##### R Squared ----
+# We then use SSR and SST to compute the value of R squared.
+# The closer the R squared value is to 1, the better the model.
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", sprintf(r_squared, fmt = "%#.4f")))
+
+##### MAE ----
+# MAE is expressed in the same units as the target variable, making it easy to
+# interpret. For example, if you are predicting the amount paid in rent,
+# and the MAE is KES. 10,000, it means, on average, your model's predictions
+# are off by about KES. 10,000.
+absolute_errors <- abs(predictions - boston_housing_test$medv)
+mae <- mean(absolute_errors)
+print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
+
+### 3.c. SVM Classifier for a classification problem with CARET ----
+# The SVM with Radial Basis kernel implementation can be used with caret for
+# classification as follows:
+#### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# train
-set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.svmRadial <- train(diabetes~., data=PimaIndiansDiabetes, method="svmRadial",
-                       metric="Accuracy", trControl=trainControl)
-# summarize fit
-print(fit.svmRadial)
 
-### 3.d. Regression Problem with CARET ----
-# The SVM with Radial Basis kernel implementation can be used with caret for regression as follows:
-# load packages
-library(caret)
-library(mlbench)
-# Load the dataset
-data(BostonHousing)
-# train
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+#### Train the model ----
 set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.svmRadial <- train(medv~., data=BostonHousing, method="svmRadial", metric="RMSE",
-                       trControl=trainControl)
-# summarize fit
-print(fit.svmRadial)
+train_control <- trainControl(method = "cv", number = 5)
+diabetes_caret_model_svm_radial <- # nolint: object_length_linter.
+  train(diabetes ~ ., data = pima_indians_diabetes_train, method = "svmRadial",
+        metric = "Accuracy", trControl = train_control)
+
+#### Display the model's details ----
+print(diabetes_caret_model_svm_radial)
+
+#### Make predictions ----
+predictions <- predict(diabetes_caret_model_svm_radial,
+                       pima_indians_diabetes_test[, 1:8])
+
+#### Display the model's evaluation metrics ----
+table(predictions, pima_indians_diabetes_test$diabetes)
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test[, 1:9]$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
+
+### 3.d. SVM classifier for a regression problem with CARET ----
+# The SVM with radial basis kernel implementation can be used with caret for
+# regression as follows:
+#### Load and split the dataset ----
+data(BostonHousing)
+
+# Define an 80:20 train:test data split of the dataset.
+train_index <- createDataPartition(BostonHousing$medv,
+                                   p = 0.8,
+                                   list = FALSE)
+boston_housing_train <- BostonHousing[train_index, ]
+boston_housing_test <- BostonHousing[-train_index, ]
+
+#### Train the model ----
+set.seed(7)
+train_control <- trainControl(method = "cv", number = 5)
+housing_caret_model_svm_radial <-
+  train(medv ~ ., data = boston_housing_train,
+        method = "svmRadial", metric = "RMSE",
+        trControl = train_control)
+
+#### Display the model's details ----
+print(housing_caret_model_svm_radial)
+
+#### Make predictions ----
+predictions <- predict(housing_caret_model_svm_radial,
+                       boston_housing_test[, 1:13])
+
+#### Display the model's evaluation metrics ----
+##### RMSE ----
+rmse <- sqrt(mean((boston_housing_test$medv - predictions)^2))
+print(paste("RMSE =", sprintf(rmse, fmt = "%#.4f")))
+
+##### SSR ----
+# SSR is the sum of squared residuals (the sum of squared differences
+# between observed and predicted values)
+ssr <- sum((boston_housing_test$medv - predictions)^2)
+print(paste("SSR =", sprintf(ssr, fmt = "%#.4f")))
+
+##### SST ----
+# SST is the total sum of squares (the sum of squared differences
+# between observed values and their mean)
+sst <- sum((boston_housing_test$medv - mean(boston_housing_test$medv))^2)
+print(paste("SST =", sprintf(sst, fmt = "%#.4f")))
+
+##### R Squared ----
+# We then use SSR and SST to compute the value of R squared.
+# The closer the R squared value is to 1, the better the model.
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", sprintf(r_squared, fmt = "%#.4f")))
+
+##### MAE ----
+# MAE is expressed in the same units as the target variable, making it easy to
+# interpret. For example, if you are predicting the amount paid in rent,
+# and the MAE is KES. 10,000, it means, on average, your model's predictions
+# are off by about KES. 10,000.
+absolute_errors <- abs(predictions - boston_housing_test$medv)
+mae <- mean(absolute_errors)
+print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
 
 ## 4.  Classification and Regression Trees ----
 ### 4.a. Classification Problem without CARET ----
