@@ -618,68 +618,179 @@ print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
 
 # B. Non-Linear Algorithms ----
 ## 1.  k-Nearest Neighbours ----
-# The knn3() function is in the caret package and does not create a model. Instead it makes predictions from the training dataset directly. It can be used for classification or regression.
+# The knn3() function is in the caret package and does not create a model.
+# Instead it makes predictions from the training dataset directly.
+# It can be used for classification or regression.
 
-### 1.a. Classification Problem without CARET ----
-# load the packages
-library(caret)
-library(mlbench)
-# Load the dataset
+### 1.a. kNN for a classification problem without CARET's train function ----
+#### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# fit model
-fit <- knn3(diabetes~., data=PimaIndiansDiabetes, k=3)
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, PimaIndiansDiabetes[,1:8], type="class")
-# summarize accuracy
-table(predictions, PimaIndiansDiabetes$diabetes)
 
-### 1.b. Regression Problem without CARET ----
-# load the packages
-library(caret)
-library(mlbench)
-# load data
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+#### Train the model ----
+diabetes_caret_model_knn <- knn3(diabetes ~ ., data = pima_indians_diabetes_train, k=3)
+
+#### Display the model's details ----
+print(diabetes_caret_model_knn)
+
+#### Make predictions ----
+predictions <- predict(diabetes_caret_model_knn,
+                       pima_indians_diabetes_test[, 1:8],
+                       type = "class")
+
+#### Display the model's evaluation metrics ----
+table(predictions, pima_indians_diabetes_test$diabetes)
+
+# Or alternatively:
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
+
+### 1.b. kNN for a regression problem without CARET's train function ----
+#### Load the dataset ----
 data(BostonHousing)
-BostonHousing$chas <- as.numeric(as.character(BostonHousing$chas))
-x <- as.matrix(BostonHousing[,1:13])
-y <- as.matrix(BostonHousing[,14])
-# fit model
-fit <- knnreg(x, y, k=3)
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, x)
-# summarize accuracy
-mse <- mean((BostonHousing$medv - predictions)^2)
-print(mse)
+BostonHousing$chas <- # nolint: object_name_linter.
+  as.numeric(as.character(BostonHousing$chas))
+x <- as.matrix(BostonHousing[, 1:13])
+y <- as.matrix(BostonHousing[, 14])
 
-### 1.c. Classification Problem with CARET ----
-# load packages
-library(caret)
-library(mlbench)
-# Load the dataset
+#### Train the model ----
+housing_model_knn <- knnreg(x, y, k = 3)
+
+#### Display the model's details ----
+print(housing_model_knn)
+
+#### Make predictions ----
+predictions <- predict(housing_model_knn, x)
+
+#### Display the model's evaluation metrics ----
+##### RMSE ----
+rmse <- sqrt(mean((y - predictions)^2))
+print(paste("RMSE =", sprintf(rmse, fmt = "%#.4f")))
+
+##### SSR ----
+ssr <- sum((y - predictions)^2)
+print(paste("SSR =", sprintf(ssr, fmt = "%#.4f")))
+
+##### SST ----
+sst <- sum((y - mean(y))^2)
+print(paste("SST =", sprintf(sst, fmt = "%#.4f")))
+
+##### R Squared ----
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", sprintf(r_squared, fmt = "%#.4f")))
+
+##### MAE ----
+absolute_errors <- abs(predictions - y)
+mae <- mean(absolute_errors)
+print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
+
+### 1.c. kNN for a classification problem with CARET's train function ----
+#### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# train
-set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.knn <- train(diabetes~., data=PimaIndiansDiabetes, method="knn", metric="Accuracy",
-                 preProcess=c("center", "scale"), trControl=trainControl)
-# summarize fit
-print(fit.knn)
 
-### 1.d. Regression Problem with CARET ----
-# load packages
-library(caret)
-# Load the dataset
-data(BostonHousing)
-# train
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+#### Train the model ----
+# We apply the 10-fold cross validation resampling method
+# We also apply the standardize data transform
 set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.knn <- train(medv~., data=BostonHousing, method="knn", metric="RMSE",
-                 preProcess=c("center", "scale"), trControl=trainControl)
-# summarize fit
-print(fit.knn)
+train_control <- trainControl(method = "cv", number = 10)
+diabetes_caret_model_knn <- train(diabetes ~ ., data = PimaIndiansDiabetes,
+                                  method = "knn", metric = "Accuracy",
+                                  preProcess = c("center", "scale"),
+                                  trControl = train_control)
+
+#### Display the model's details ----
+print(diabetes_caret_model_knn)
+
+#### Make predictions ----
+predictions <- predict(diabetes_caret_model_knn,
+                       pima_indians_diabetes_test[, 1:8])
+
+#### Display the model's evaluation metrics ----
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test[, 1:9]$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
+
+### 1.d. kNN for a regression problem with CARET's train function ----
+#### Load and split the dataset ----
+data(BostonHousing)
+
+# Define an 80:20 train:test data split of the dataset.
+train_index <- createDataPartition(BostonHousing$medv,
+                                   p = 0.8,
+                                   list = FALSE)
+boston_housing_train <- BostonHousing[train_index, ]
+boston_housing_test <- BostonHousing[-train_index, ]
+
+#### Train the model ----
+# We apply the 5-fold cross validation resampling method
+# We also apply the standardize data transform
+set.seed(7)
+train_control <- trainControl(method = "cv", number = 5)
+housing_caret_model_knn <- train(medv ~ ., data = BostonHousing,
+                                 method = "knn", metric = "RMSE",
+                                 preProcess = c("center", "scale"),
+                                 trControl = train_control)
+
+#### Display the model's details ----
+print(housing_caret_model_knn)
+
+#### Make predictions ----
+predictions <- predict(housing_caret_model_knn,
+                       boston_housing_test[, 1:13])
+
+#### Display the model's evaluation metrics ----
+##### RMSE ----
+rmse <- sqrt(mean((boston_housing_test$medv - predictions)^2))
+print(paste("RMSE =", sprintf(rmse, fmt = "%#.4f")))
+
+##### SSR ----
+# SSR is the sum of squared residuals (the sum of squared differences
+# between observed and predicted values)
+ssr <- sum((boston_housing_test$medv - predictions)^2)
+print(paste("SSR =", sprintf(ssr, fmt = "%#.4f")))
+
+##### SST ----
+# SST is the total sum of squares (the sum of squared differences
+# between observed values and their mean)
+sst <- sum((boston_housing_test$medv - mean(boston_housing_test$medv))^2)
+print(paste("SST =", sprintf(sst, fmt = "%#.4f")))
+
+##### R Squared ----
+# We then use SSR and SST to compute the value of R squared.
+# The closer the R squared value is to 1, the better the model.
+r_squared <- 1 - (ssr / sst)
+print(paste("R Squared =", sprintf(r_squared, fmt = "%#.4f")))
+
+##### MAE ----
+# MAE is expressed in the same units as the target variable, making it easy to
+# interpret. For example, if you are predicting the amount paid in rent,
+# and the MAE is KES. 10,000, it means, on average, your model's predictions
+# are off by about KES. 10,000.
+absolute_errors <- abs(predictions - boston_housing_test$medv)
+mae <- mean(absolute_errors)
+print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
 
 ## 2.  Naïve Bayes ----
 ### 2.a. Classification Problem without CARET ----
