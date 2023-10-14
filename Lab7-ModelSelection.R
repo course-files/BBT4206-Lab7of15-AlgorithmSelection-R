@@ -152,6 +152,14 @@ if (require("caret")) {
                    repos = "https://cloud.r-project.org")
 }
 
+## MASS ----
+if (require("MASS")) {
+  require("MASS")
+} else {
+  install.packages("MASS", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
 # Introduction ----
 # There are hundreds of algorithms to choose from.
 # A list of the classification and regression algorithms offered by
@@ -295,7 +303,7 @@ print(paste("MAE =", sprintf(mae, fmt = "%#.4f")))
 ### Load and split the dataset ----
 data(PimaIndiansDiabetes)
 
-# Define an 70:30 train:test data split of the dataset.
+# Define a 70:30 train:test data split of the dataset.
 train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
                                    p = 0.7,
                                    list = FALSE)
@@ -327,7 +335,7 @@ table(predictions, pima_indians_diabetes_test$diabetes)
 ### Load and split the dataset ----
 data(PimaIndiansDiabetes)
 
-# Define an 70:30 train:test data split of the dataset.
+# Define a 70:30 train:test data split of the dataset.
 train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
                                    p = 0.7,
                                    list = FALSE)
@@ -362,36 +370,75 @@ print(confusion_matrix)
 fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
              main = "Confusion Matrix")
 
-## 3.  Linear Discriminant Analysis ----
-# The lda() function is in the MASS package and creates a linear model of a classification problem.
+## 3.a.  Linear Discriminant Analysis without caret ----
+# The lda() function is in the MASS package and creates a linear model of a
+# multi-class classification problem.
 
-# load the packages
-library(MASS)
-library(mlbench)
-# Load the dataset
+### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# fit model
-fit <- lda(diabetes~., data=PimaIndiansDiabetes)
-# summarize the fit
-print(fit)
-# make predictions
-predictions <- predict(fit, PimaIndiansDiabetes[,1:8])$class
-# summarize accuracy
-table(predictions, PimaIndiansDiabetes$diabetes)
 
-# The lda algorithm can be used in caret as follows:
-# load packages
-library(caret)
-library(mlbench)
-# Load the dataset
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+### Train the model ----
+diabetes_model_lda <- lda(diabetes ~ ., data = pima_indians_diabetes_train)
+
+### Display the model's details ----
+print(diabetes_model_lda)
+
+### Make predictions ----
+predictions <- predict(diabetes_model_lda,
+                       pima_indians_diabetes_test[, 1:8])$class
+
+### Display the model's evaluation metrics ----
+table(predictions, pima_indians_diabetes_test$diabetes)
+
+# Read the following article on how to compute various evaluation metrics using
+# the confusion matrix:
+# https://en.wikipedia.org/wiki/Confusion_matrix
+
+## 3.b.  Linear Discriminant Analysis with caret ----
+### Load and split the dataset ----
 data(PimaIndiansDiabetes)
-# train
+
+# Define a 70:30 train:test data split of the dataset.
+train_index <- createDataPartition(PimaIndiansDiabetes$diabetes,
+                                   p = 0.7,
+                                   list = FALSE)
+pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
+pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
+
+### Train the model ----
 set.seed(7)
-trainControl <- trainControl(method="cv", number=5)
-fit.lda <- train(diabetes~., data=PimaIndiansDiabetes, method="lda", metric="Accuracy",
-                 preProcess=c("center", "scale"), trControl=trainControl)
-# summarize fit
-print(fit.lda)
+
+# We apply a Leave One Out Cross Validation resampling method
+train_control <- trainControl(method = "LOOCV")
+# We also apply a standardize data transform to make the mean = 0 and
+# standard deviation = 1
+diabetes_caret_model_lda <- train(diabetes ~ .,
+                                  data = pima_indians_diabetes_train,
+                                  method = "lda", metric = "Accuracy",
+                                  preProcess = c("center", "scale"),
+                                  trControl = train_control)
+### Display the model's details ----
+print(diabetes_caret_model_lda)
+
+### Make predictions ----
+predictions <- predict(diabetes_caret_model_lda,
+                       pima_indians_diabetes_test[, 1:8])
+
+### Display the model's evaluation metrics ----
+confusion_matrix <-
+  caret::confusionMatrix(predictions,
+                         pima_indians_diabetes_test[, 1:9]$diabetes)
+print(confusion_matrix)
+
+fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
+             main = "Confusion Matrix")
 
 ## 4. Regularized Regression ----
 # The glmnet() function is in the glmnet package and can be used for classification or regression.
