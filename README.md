@@ -60,7 +60,11 @@ Evaluate several standard algorithms on the data and shortlist the top performin
 
 -   *Lab6-EvaluationMetrics.R*
 
--   [*Lab7-ModelSelection.R*](Lab7-ModelSelection.R)
+-   [*Lab7a-AlgorithmSelectionForClassificationAndRegression.R*](Lab7a-AlgorithmSelectionForClassificationAndRegression.R)
+
+-   [*Lab7b-AlgorithmSelectionForClustering.R*](Lab7b-AlgorithmSelectionForClustering.R)
+
+-   [*Lab7c-AlgorithmSelectionForAssociation.R*](Lab7c-AlgorithmSelectionForAssociation.R)
 
 -   *Lab8-ModelPerformanceComparison.R*
 
