@@ -14,3 +14,6 @@ api_key.txt
 # Ignore compiled code
 *.dll
 *.so
+
+# Ignored datasets
+data/listings.csv.gz
