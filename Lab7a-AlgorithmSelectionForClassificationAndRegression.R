@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Lab 5.a.: Algorithm Selection for Classification and Regression ----
+# Lab 7.a.: Algorithm Selection for Classification and Regression ----
 #
 # Course Code: BBT4206
 # Course Name: Business Intelligence II

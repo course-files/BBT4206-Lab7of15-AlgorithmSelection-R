@@ -1,5 +1,5 @@
 # *****************************************************************************
-# Lab 5.b.: Algorithm Selection for Clustering ----
+# Lab 7.b.: Algorithm Selection for Clustering ----
 #
 # Course Code: BBT4206
 # Course Name: Business Intelligence II
