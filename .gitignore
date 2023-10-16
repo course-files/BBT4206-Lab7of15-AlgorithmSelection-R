@@ -17,3 +17,4 @@ api_key.txt
 
 # Ignored datasets
 data/listings.csv.gz
+data/online+retail.zip
