@@ -745,8 +745,7 @@ inspect(head(strawberry_charlotte_bag_association_rules))
 # STEP 5. Visualize the rules ----
 # Filter rules with confidence greater than 0.85 or 85%
 rules_to_plot <-
-  association_rules_prod_no_reps[
-    quality(association_rules_prod_no_reps)$confidence > 0.85]
+  association_rules_prod_no_reps[quality(association_rules_prod_no_reps)$confidence > 0.85] # nolint
 
 #Plot SubRules
 plot(rules_to_plot)
@@ -764,13 +763,58 @@ plot(rules_to_plot_by_lift, method = "paracoord")
 
 plot(top_10_rules_to_plot, method = "grouped")
 
-# Have a look at this example where association rule learning is used to determine who
-# will survive the Titanic ship wreck:
+# Applications of Association Rule Learning outside a Business Context ----
+# Have a look at this example where association rule learning is used to
+# determine who will survive the Titanic ship wreck:
 # https://www.rdatamining.com/examples/association-rules
 
 # This gives an example of the fact that association rule learning can be
 # extended to many creative contexts, e.g., a set of symptoms associated with
 # a disease, genomics, bioinformatics, macro economics, and so on.
+
+# Healthcare: Association rule learning can be used to discover patterns in
+# patient data, such as identifying co-occurring medical conditions or
+# treatments. This information can be valuable for disease diagnosis and
+# treatment planning.
+
+# Recommendation Systems: Beyond retail, it's used in recommendation systems
+# for movies, music, books, and more. It helps suggest items that users might
+# like based on their historical choices or preferences.
+
+# Fraud Detection: Association rules can help identify unusual patterns of
+# behavior in financial transactions, potentially indicating fraud. Unusual
+# combinations of transactions can be flagged for further investigation.
+
+# Text Mining: In natural language processing, association rule learning can be
+# used to discover frequent word combinations, which can be useful for text
+# classification, sentiment analysis, and content recommendation.
+
+# Web Usage Mining: Analyzing user behavior on websites to understand patterns
+# in clicks, page views, and interactions. This information can be used to
+# optimize website design and content.
+
+# Supply Chain Optimization: Association rules can help optimize the supply
+# chain by identifying patterns in the movement of goods and inventory
+# management.
+
+# Biology and Genetics: Identifying associations between genes and diseases or
+# discovering patterns in DNA sequences can aid in genetic research and
+# personalized medicine.
+
+# Quality Control in Manufacturing: It can be used to find patterns in
+# manufacturing data to improve product quality and reduce defects.
+
+# Market Research: Beyond market baskets, it can be used to identify patterns in
+# consumer behavior, such as brand loyalty, purchase sequences, and the impact
+# of marketing campaigns.
+
+# Sports Analytics: Analyzing game statistics and player performance to identify
+# patterns and strategies that lead to success.
+
+# These are just a few examples, and the creative applications of association
+# rule learning continue to expand as data mining and machine learning
+# techniques evolve. It's a versatile method for discovering patterns and
+# associations in various types of data.
 
 # References ----
 ## Online Retail. (2015). Online Retail [Dataset; XLSX]. University of California, Irvine (UCI) Machine Learning Repository. https://doi.org/10.24432/C5BW33 # nolint ----
