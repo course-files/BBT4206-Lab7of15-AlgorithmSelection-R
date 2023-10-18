@@ -331,7 +331,8 @@ any_na(airbnb_cape_town_removed_obs)
 ## OPTION 2: Remove the variables with missing values ----
 # Alternatively, we can decide to remove the 2 variables that have missing data
 airbnb_cape_town_removed_vars <-
-  airbnb_cape_town %>% select(-last_review, -reviews_per_month)
+  airbnb_cape_town %>%
+  dplyr::select(-last_review, -reviews_per_month)
 
 # The initial dataset had 21,120 observations and 16 variables
 dim(airbnb_cape_town)
