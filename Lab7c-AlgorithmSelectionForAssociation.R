@@ -435,7 +435,7 @@ any_na(retail_removed_obs)
 # The `CustomerID` variable will not be used to create association rules.
 # We will use the `InvoiceNo` instead.
 retail_removed_vars <-
-  retail %>% select(-CustomerID)
+  retail %>% dplyr::select(-CustomerID)
 
 dim(retail_removed_vars)
 
@@ -569,7 +569,7 @@ View(transaction_data_stock_code)
 ### OPTION 1 ----
 transaction_data <-
   transaction_data %>%
-  select("items" = V1)
+  dplyr::select("items" = V1)
 #  %>% mutate(items = paste("{", items, "}", sep = ""))
 
 View(transaction_data)
@@ -577,7 +577,7 @@ View(transaction_data)
 ### OPTION 2 ----
 transaction_data_stock_code <-
   transaction_data_stock_code %>%
-  select("items" = V1)
+  dplyr::select("items" = V1)
 #  %>% mutate(items = paste("{", items, "}", sep = ""))
 
 View(transaction_data_stock_code)
@@ -594,7 +594,7 @@ write.csv(transaction_data_stock_code,
           quote = FALSE, row.names = FALSE)
 
 ## Read the transactions fromm the CSV file ----
-# We can now, finally, read the single format transaction data as a
+# We can now, finally, read the basket format transaction data as a
 # transaction object.
 ### OPTION 1 ----
 tr <-
@@ -606,7 +606,7 @@ tr <-
   )
 
 # This shows there are 20,607 transactions that have been identified
-# and 8,861 items
+# and 8,906 items
 print(tr)
 summary(tr)
 
@@ -620,7 +620,8 @@ tr_stock_code <-
   )
 
 # This shows there are 20,607 transactions that have been identified
-# and 3,942 unique items
+# and 3,942 unique items (more accurate because we are using the
+# stock code)
 print(tr_stock_code)
 summary(tr_stock_code)
 
