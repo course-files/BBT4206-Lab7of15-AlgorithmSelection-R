@@ -525,7 +525,7 @@ wss <- numeric(n_clusters)
 
 set.seed(7)
 
-# Investigate 1 to n possible clusters (where n is the maximum number of 
+# Investigate 1 to n possible clusters (where n is the maximum number of
 # clusters that we want to investigate)
 for (i in 1:n_clusters) {
   # Use the K Means cluster algorithm to create each cluster
