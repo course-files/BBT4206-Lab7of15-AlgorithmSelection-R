@@ -49,6 +49,7 @@
         "maxlen",
         "Mclust",
         "mincor",
+        "minsplit",
         "missingness",
         "missmap",
         "mnist",

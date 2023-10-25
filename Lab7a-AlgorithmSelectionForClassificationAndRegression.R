@@ -666,7 +666,7 @@ boston_housing_test <- BostonHousing[-train_index, ]
 
 #### Train the model ----
 housing_model_cart <- rpart(medv ~ ., data = boston_housing_train,
-                            control = rpart.control(minsplit=5))
+                            control = rpart.control(minsplit = 5))
 
 #### Display the model's details ----
 print(housing_model_cart)
@@ -888,7 +888,9 @@ pima_indians_diabetes_train <- PimaIndiansDiabetes[train_index, ]
 pima_indians_diabetes_test <- PimaIndiansDiabetes[-train_index, ]
 
 #### Train the model ----
-diabetes_caret_model_knn <- knn3(diabetes ~ ., data = pima_indians_diabetes_train, k=3)
+diabetes_caret_model_knn <- knn3(diabetes ~ .,
+                                 data = pima_indians_diabetes_train,
+                                 k = 3)
 
 #### Display the model's details ----
 print(diabetes_caret_model_knn)
