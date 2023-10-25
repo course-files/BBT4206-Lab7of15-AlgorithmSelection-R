@@ -249,6 +249,22 @@ if (require("ggcorrplot")) {
                    repos = "https://cloud.r-project.org")
 }
 
+## caret ----
+if (require("caret")) {
+  require("caret")
+} else {
+  install.packages("caret", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
+## dplyr ----
+if (require("dplyr")) {
+  require("dplyr")
+} else {
+  install.packages("dplyr", dependencies = TRUE,
+                   repos = "https://cloud.r-project.org")
+}
+
 # STEP 2. Load the Dataset ----
 # Source: http://insideairbnb.com/cape-town/
 # Save the dataset as "listings_summary_cape_town.csv" inside the data folder
