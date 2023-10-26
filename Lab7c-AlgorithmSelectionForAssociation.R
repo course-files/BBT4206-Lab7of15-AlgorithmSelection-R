@@ -771,7 +771,6 @@ saveAsGraph(head(rules_to_plot, n = 1000, by = "lift"),
 # yEd Graph Editor: https://www.yworks.com/products/yed
 # Cytoscape: https://cytoscape.org/
 # Gephi: https://gephi.org/
-# GraphML Viewer: https://graphmlviewer.specmine.com/
 # Network Analysis Software: Pajek and NodeXL
 # Libraries in Python and R
 
