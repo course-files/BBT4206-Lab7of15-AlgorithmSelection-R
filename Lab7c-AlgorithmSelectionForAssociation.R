@@ -640,7 +640,7 @@ summary(tr_stock_code)
 # does not yield accurate results. We, therefore, use product codes only
 # from this point onwards.
 
-# STEP 2. Basic EDA ----
+# STEP 3. Basic EDA ----
 # Create an item frequency plot for the top 10 items
 itemFrequencyPlot(tr_stock_code, topN = 10, type = "absolute",
                   col = brewer.pal(8, "Pastel2"),
@@ -662,7 +662,7 @@ itemFrequencyPlot(tr_stock_code, topN = 10, type = "relative",
 # Stock Code "47566" corresponds to "PARTY BUNTING"
 # Stock Code "20725" corresponds to "LUNCH BAG RED RETROSPOT"
 
-# STEP 3. Create the association rules ----
+# STEP 4. Create the association rules ----
 # We can set the minimum support and confidence levels for rules to be
 # generated.
 
@@ -684,7 +684,7 @@ association_rules_prod_name <- apriori(tr,
                                                         confidence = 0.8,
                                                         maxlen = 10))
 
-# STEP 3. Print the association rules ----
+# STEP 5. Print the association rules ----
 ## OPTION 1 ----
 # Threshold values of support = 0.01, confidence = 0.8, and
 # maxlen = 10 results in a total of 83 rules when using the
@@ -735,7 +735,7 @@ inspect(association_rules_prod_no_reps)
 write(association_rules_prod_no_reps,
       file = "rules/association_rules_based_on_product_name.csv")
 
-# STEP 4. Find specific rules ----
+# STEP 6. Find specific rules ----
 # Which product(s), if bought, result in a customer purchasing
 # "ROSES REGENCY TEACUP AND SAUCER"?
 roses_regency_teacup_and_saucer_association_rules <- # nolint
@@ -752,7 +752,7 @@ strawberry_charlotte_bag_association_rules <- # nolint
                             default = "rhs"))
 inspect(head(strawberry_charlotte_bag_association_rules))
 
-# STEP 5. Visualize the rules ----
+# STEP 7. Visualize the rules ----
 # Filter rules with confidence greater than 0.85 or 85%
 rules_to_plot <-
   association_rules_prod_no_reps[quality(association_rules_prod_no_reps)$confidence > 0.85] # nolint
