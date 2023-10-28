@@ -457,11 +457,44 @@ fourfoldplot(as.table(confusion_matrix), color = c("grey", "lightblue"),
 ## 4. Regularized Linear Regression ----
 # The glmnet() function is in the glmnet package and can be used for
 # both classification and regression problems.
-# It can also be configured to perform three important types of regularization:
-##    1. lasso,
-##    2. ridge and
-##    3. elastic net
-# by configuring the alpha parameter to 1, 0 or in [0,1] respectively.
+
+# It can also be configured to perform two important types of regularization:
+##    1. lasso/L1 regularization (alpha = 1)
+##    2. ridge/L2 regularization (alpha = 0)
+
+## The Alpha Parameter
+# Alpha, also known as the mixing parameter or elastic net mixing parameter,
+# controls the balance between L1 (Lasso) and L2 (Ridge) regularization in the
+# glmnet model.
+
+# When alpha is set to 1, it corresponds to Lasso regression, which enforces
+# sparsity by shrinking some of the regression coefficients to exactly zero.
+# This feature selection property is useful when you want a model with fewer
+# relevant features.
+
+# When alpha is set to 0, it corresponds to Ridge regression, which penalizes
+# the sum of the squares of the coefficients. Ridge helps prevent overfitting
+# and encourages all features to be included in the model.
+
+# Any value between 0 and 1 represents a trade-off between Lasso and Ridge
+# regularization. An alpha value of 0.5, for instance, balances the effects of
+# L1 and L2 regularization.
+
+## The Lambda Parameter
+# Lambda represents the regularization parameter, which controls the strength of
+# the penalty applied to the coefficients. A higher lambda leads to stronger
+# regularization, which encourages simpler models with smaller coefficients.
+
+# A lambda value of 0 indicates no regularization, meaning the model will be
+# equivalent to ordinary least squares (OLS) regression.
+
+# As lambda increases, the coefficients are shrunk towards zero, and the model
+# becomes simpler. This helps to prevent overfitting by reducing the influence
+# of individual data points on the coefficients.
+
+# You typically perform a grid search over a range of lambda values to find the
+# optimal lambda for your specific problem. Cross-validation is often used to
+# select the best lambda, which results in the best model performance.
 
 ### 4.a. Regularized Linear Regression Classification Problem without CARET ----
 #### Load the dataset ----
@@ -471,7 +504,7 @@ y <- as.matrix(PimaIndiansDiabetes[, 9])
 
 #### Train the model ----
 diabetes_model_glm <- glmnet(x, y, family = "binomial",
-                             alpha = 0.5, lambda = 0.001)
+                             alpha = 1, lambda = 0.5)
 
 #### Display the model's details ----
 print(diabetes_model_glm)
@@ -492,7 +525,7 @@ y <- as.matrix(BostonHousing[, 14])
 
 #### Train the model ----
 boston_housing_model_glm <- glmnet(x, y, family = "gaussian",
-                                   alpha = 0.5, lambda = 0.001)
+                                   alpha = 1, lambda = 0.5)
 
 #### Display the model's details ----
 print(boston_housing_model_glm)
